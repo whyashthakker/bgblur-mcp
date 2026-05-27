@@ -1,181 +1,400 @@
 # bgblur-mcp
 
-Official MCP server for bgblur.com — AI-powered background blur and image enhancement tools for Claude and MCP-compatible AI clients.
+Official Model Context Protocol (MCP) server for BGBlur.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![MCP](https://img.shields.io/badge/MCP-compatible-green)
-![API](https://img.shields.io/badge/API-bgblur.com-black)
+This server lets Claude Desktop, Claude Code, Cursor, and other MCP-compatible
+agents use BGBlur image and video processing tools through a small, stable API
+surface.
 
----
+The MCP server must only call the public BGBlur API:
+
+```text
+MCP client -> bgblur-mcp -> https://bgblur.com/api/v1/* -> BGBlur backend
+```
+
+It must not expose or depend on BGBlur internal routes, FastAPI URLs, RunPod
+payloads, S3 bucket URLs, database models, webhook URLs, worker names, or any
+other implementation detail.
+
+## Status
+
+This repository is the MCP server package. The intended implementation details
+are documented in [codex.md](./codex.md) so Codex can scaffold and maintain the
+server consistently.
 
 ## Features
 
-- AI background blur
-- Portrait enhancement
-- Background removal
-- Batch image processing
-- Claude-compatible MCP tools
-- Fast API responses
-- Remote MCP server support
+- Blur image backgrounds
+- Remove image backgrounds
+- Enhance portraits
+- Blur faces in images and videos
+- Blur license plates in images and videos
+- Remove objects from videos
+- Detect NSFW content
+- Check async job status
+- Upload local image and video files from the local stdio MCP server
+- Check remaining credits
+- List available BGBlur features and input schemas
+- Authenticate with user-owned BGBlur API keys
+- Return stable, user-facing JSON responses only
 
----
+## Public API Boundary
 
-## Example Use Cases
+The MCP server should call public API endpoints like:
 
-- Blur backgrounds for portraits
-- Generate DSLR-style depth effects
-- Enhance profile pictures
-- Process ecommerce images
-- Automate image workflows in Claude
+```text
+POST /api/v1/images/blur-background
+POST /api/v1/images/remove-background
+POST /api/v1/images/portrait-enhance
+POST /api/v1/images/face-blur
+POST /api/v1/images/license-plate-blur
+POST /api/v1/videos/background-blur
+POST /api/v1/videos/face-blur
+POST /api/v1/videos/license-plate-blur
+POST /api/v1/videos/object-removal
+POST /api/v1/detect/nsfw
+GET  /api/v1/jobs/{job_id}
+POST /api/v1/uploads/image
+POST /api/v1/uploads/video
+GET  /api/v1/me/credits
+GET  /api/v1/features
+```
 
----
+All requests use bearer authentication:
+
+```http
+Authorization: Bearer vba_your_api_key
+```
 
 ## MCP Tools
 
+### `check_credits`
+
+Check the remaining credits for the API key user.
+
+Input:
+
+```json
+{}
+```
+
+### `list_features`
+
+List all available BGBlur tools, endpoints, input schemas, and credit costs.
+
+Input:
+
+```json
+{}
+```
+
+### `upload_image`
+
+Upload a local image file to BGBlur and return a CDN URL. This tool is only
+available in the local stdio MCP server, not the hosted remote MCP server.
+
+Input:
+
+```json
+{
+  "file_path": "/Users/rahulsantra/Downloads/image.png"
+}
+```
+
+Output:
+
+```json
+{
+  "success": true,
+  "image_url": "https://cdn.bgblur.com/uploads/image.png",
+  "media_url": "https://cdn.bgblur.com/uploads/image.png"
+}
+```
+
+### `upload_video`
+
+Upload a local video file to BGBlur and return a CDN URL. This tool is only
+available in the local stdio MCP server.
+
+Input:
+
+```json
+{
+  "file_path": "/Users/rahulsantra/Downloads/video.mp4"
+}
+```
+
 ### `blur_background`
 
-Blur image backgrounds with configurable intensity.
+Blur an image background with configurable intensity.
 
-#### Input
+Input:
 
 ```json
 {
   "image_url": "https://example.com/image.jpg",
+  "blur_strength": 0.7,
+  "output_format": "png"
+}
+```
+
+Output:
+
+```json
+{
+  "success": true,
+  "output_url": "https://cdn.bgblur.com/results/image.png",
+  "credits_used": 1,
+  "remaining_credits": 99
+}
+```
+
+### `remove_background`
+
+Remove an image background.
+
+Input:
+
+```json
+{
+  "image_url": "https://example.com/image.jpg",
+  "output_transparent": true,
+  "output_format": "png"
+}
+```
+
+### `portrait_enhance`
+
+Enhance a portrait and optionally apply a depth/background effect.
+
+Input:
+
+```json
+{
+  "image_url": "https://example.com/image.jpg",
+  "enhance_face": true,
+  "depth_effect": true,
+  "output_format": "png"
+}
+```
+
+### `blur_faces`
+
+Blur faces in an image or video.
+
+Input:
+
+```json
+{
+  "media_url": "https://example.com/photo.jpg",
+  "media_type": "image",
+  "blur_strength": 0.8,
+  "pixelated": false
+}
+```
+
+### `blur_license_plates`
+
+Blur license plates in an image or video.
+
+Input:
+
+```json
+{
+  "media_url": "https://example.com/dashcam.mp4",
+  "media_type": "video",
+  "blur_strength": 0.8,
+  "pixelated": false
+}
+```
+
+### `blur_video_background`
+
+Blur a video background.
+
+Input:
+
+```json
+{
+  "video_url": "https://example.com/video.mp4",
   "blur_strength": 0.7
 }
 ```
 
----
-
-### `remove_background`
-
-Remove image backgrounds automatically.
-
-#### Input
+Async output:
 
 ```json
 {
-  "image_url": "https://example.com/image.jpg"
+  "success": true,
+  "job_id": "job_abc123",
+  "status": "queued"
 }
 ```
 
----
+### `remove_object_from_video`
 
-### `portrait_enhance`
+Remove a named object from a video.
 
-Enhance portraits and apply depth effects.
-
-#### Input
+Input:
 
 ```json
 {
-  "image_url": "https://example.com/image.jpg",
-  "enhance_face": true
+  "video_url": "https://example.com/video.mp4",
+  "object_text": "person",
+  "duration_seconds": 10
 }
 ```
 
----
+### `detect_nsfw`
+
+Detect whether image or video content is unsafe.
+
+Input:
+
+```json
+{
+  "media_url": "https://example.com/image.jpg",
+  "media_type": "image"
+}
+```
+
+### `get_job_status`
+
+Check the result of an async BGBlur job.
+
+Input:
+
+```json
+{
+  "job_id": "job_abc123"
+}
+```
+
+Output:
+
+```json
+{
+  "success": true,
+  "job_id": "job_abc123",
+  "status": "completed",
+  "output_url": "https://cdn.bgblur.com/results/video.mp4",
+  "credits_used": 12,
+  "remaining_credits": 87
+}
+```
 
 ## Installation
 
-### Clone repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/bgblur-mcp.git
 cd bgblur-mcp
 ```
 
-### Install dependencies
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-### Configure environment
-
-Create `.env`
+Create `.env`:
 
 ```env
-BGBLUR_API_KEY=your_api_key
-PORT=3000
+BGBLUR_API_KEY=your_bgblur_api_key
+BGBLUR_API_BASE_URL=https://bgblur.com/api/v1
 ```
 
----
+Build the server:
 
-## Run locally
+```bash
+npm run build
+```
+
+Run locally:
 
 ```bash
 npm run dev
 ```
 
----
+Run as a remote Streamable HTTP MCP server:
 
-## Claude MCP Configuration
+```bash
+npm run dev:http
+```
 
-Example MCP config:
+Production HTTP entrypoint:
+
+```bash
+npm run start:http
+```
+
+By default, the MCP server calls:
+
+```text
+https://bgblur.com/api/v1
+```
+
+Use `BGBLUR_API_BASE_URL` only for staging or local testing. Do not hard-code
+environment-specific URLs inside tool implementations.
+
+## Claude Desktop Configuration
+
+After building the server, add it to your Claude Desktop MCP config:
 
 ```json
 {
   "mcpServers": {
     "bgblur": {
       "command": "node",
-      "args": ["dist/server.js"]
+      "args": ["/absolute/path/to/bgblur-mcp/dist/server.js"],
+      "env": {
+        "BGBLUR_API_KEY": "vba_your_api_key",
+        "BGBLUR_API_BASE_URL": "https://bgblur.com/api/v1"
+      }
     }
   }
 }
 ```
 
----
+## Remote MCP Configuration
 
-## Remote MCP Support
+When hosted at `https://mcp.bgblur.com`, remote MCP clients should connect to:
 
-This repository supports:
-- Claude Desktop
-- Claude Code
-- MCP-compatible AI agents
-- Remote MCP deployments
+```text
+https://mcp.bgblur.com/mcp
+```
 
----
+Remote requests must include the user's BGBlur API key as a bearer token:
 
-## API
+```http
+Authorization: Bearer vba_user_api_key
+```
 
-Visit:
-
-- https://bgblur.com
-
----
-
-## Roadmap
-
-- [ ] Video background blur
-- [ ] Batch processing
-- [ ] Realtime streaming
-- [ ] Photoshop plugin
-- [ ] Webhook support
-
----
+The remote MCP server forwards that same user key to `https://bgblur.com/api/v1`.
+This keeps billing, usage limits, credits, and jobs per user.
 
 ## Security
 
-Never expose your API keys publicly.
+- Never hard-code API keys.
+- Never print API keys in logs.
+- Never return BGBlur internal URLs, S3 URLs, FastAPI URLs, RunPod IDs, or raw
+  upstream worker payloads.
+- Validate every tool input with a schema.
+- Return clear user-facing errors without leaking stack traces or internal
+  service names.
 
-Use environment variables for all credentials.
+## Development Notes
 
----
+The MCP server should be a thin client over the BGBlur public API. Any business
+logic such as credits, billing, usage logging, policy checks, worker selection,
+webhooks, and storage should remain inside BGBlur's backend.
+
+See [codex.md](./codex.md) for the complete implementation brief.
 
 ## License
 
 MIT License
-
----
-
-## Contributing
-
-Pull requests are welcome.
-
-For major changes, please open an issue first to discuss proposed updates.
-
----
 
 ## Links
 
