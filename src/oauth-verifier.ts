@@ -21,6 +21,8 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { OAuthTokenVerifier } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 
+import { InvalidTokenError, ServerError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+
 export interface BgblurTokenVerifierOptions {
   /** Base URL of the bgblur API, e.g. "https://bgblur.com/api/v1" */
   apiBaseUrl: string;
@@ -43,7 +45,7 @@ export class BgblurTokenVerifier implements OAuthTokenVerifier {
    */
   async verifyAccessToken(token: string): Promise<AuthInfo> {
     if (!token || typeof token !== "string") {
-      throw new Error("Missing or invalid token.");
+      throw new InvalidTokenError("Missing or invalid token.");
     }
 
     const controller = new AbortController();
@@ -64,28 +66,30 @@ export class BgblurTokenVerifier implements OAuthTokenVerifier {
       });
     } catch (err: unknown) {
       if ((err as Error)?.name === "AbortError") {
-        throw new Error("Token verification timed out.");
+        throw new ServerError("Token verification timed out.");
       }
-      throw new Error(`Token verification network error: ${(err as Error)?.message ?? String(err)}`);
+      throw new ServerError(`Token verification network error: ${(err as Error)?.message ?? String(err)}`);
     } finally {
       clearTimeout(timer);
     }
 
     if (response.status === 401 || response.status === 403) {
-      throw new Error("Invalid or expired token.");
+      throw new InvalidTokenError("Invalid or expired token.");
     }
 
     if (!response.ok) {
       // Surface unexpected errors without leaking token data
-      throw new Error(`Token verification failed with status ${response.status}.`);
+      throw new ServerError(`Token verification failed with status ${response.status}.`);
     }
 
     // Return minimal AuthInfo — the token itself carries identity
+    // The MCP SDK explicitly requires expiresAt to be a number (in seconds).
     return {
       token,
       clientId: "bgblur-api",
       scopes: ["mcp:tools"],
-      // No expiresAt — bgblur API keys are long-lived
+      // bgblur API keys are long-lived, set expiration to 10 years in the future
+      expiresAt: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60,
     };
   }
 }
