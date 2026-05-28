@@ -61,11 +61,11 @@ const MCP_SERVER_URL =
 const BGBLUR_OAUTH_ISSUER =
   process.env.BGBLUR_OAUTH_ISSUER || "https://bgblur.com";
 const BGBLUR_OAUTH_AUTHORIZE =
-  process.env.BGBLUR_OAUTH_AUTHORIZE || "https://bgblur.com/api/oauth/authorize";
+  process.env.BGBLUR_OAUTH_AUTHORIZE || "https://bgblur.com/oauth/authorize";
 const BGBLUR_OAUTH_TOKEN =
-  process.env.BGBLUR_OAUTH_TOKEN || "https://bgblur.com/api/oauth/token";
+  process.env.BGBLUR_OAUTH_TOKEN || "https://bgblur.com/oauth/token";
 const BGBLUR_OAUTH_REGISTER =
-  process.env.BGBLUR_OAUTH_REGISTER || "https://bgblur.com/api/oauth/register";
+  process.env.BGBLUR_OAUTH_REGISTER || "https://bgblur.com/oauth/register";
 
 const startTime = Date.now();
 
