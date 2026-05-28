@@ -7,6 +7,9 @@ import { BgblurClient } from "./bgblur-client.js";
 import { loadConfig } from "./config.js";
 import { registerTools } from "./tools/register.js";
 
+process.on("SIGTERM", () => process.exit(0));
+process.on("SIGINT", () => process.exit(0));
+
 async function main() {
   const config = loadConfig();
   const server = new McpServer({

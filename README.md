@@ -384,6 +384,89 @@ This keeps billing, usage limits, credits, and jobs per user.
 - Return clear user-facing errors without leaking stack traces or internal
   service names.
 
+## Deployment
+
+### Docker
+
+```bash
+# Build
+docker build -t bgblur-mcp .
+
+# Run
+docker run -d \
+  --name bgblur-mcp \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  bgblur-mcp
+```
+
+The server listens on `0.0.0.0:3000` by default. Set `PORT` and `HOST` to override.
+
+### Railway
+
+1. Connect your GitHub repository to Railway.
+2. Set the start command: `node dist/http-server.js`
+3. Add environment variables in the Railway dashboard:
+
+```
+NODE_ENV=production
+```
+
+Railway automatically sets `PORT` and provides HTTPS.
+
+### Render
+
+1. Create a new **Web Service** from your repository.
+2. **Runtime**: Node
+3. **Build Command**: `npm ci && npm run build`
+4. **Start Command**: `node dist/http-server.js`
+5. No additional env vars required — set `NODE_ENV=production` for production mode.
+
+### Fly.io
+
+```toml
+# fly.toml
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+
+[[services]]
+  port = 3000
+  protocol = "tcp"
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+  [[services.ports]]
+    port = 443
+    handlers = ["tls"]
+```
+
+```bash
+fly launch --no-deploy
+fly deploy
+```
+
+### Cloud Run
+
+```bash
+gcloud builds submit --tag gcr.io/PROJECT/bgblur-mcp
+gcloud run deploy bgblur-mcp \
+  --image gcr.io/PROJECT/bgblur-mcp \
+  --set-env-vars "NODE_ENV=production" \
+  --allow-unauthenticated
+```
+
+### Production Best Practices
+
+- **No server-side API key needed**: The HTTP server does not require `BGBLUR_API_KEY` in its environment. Each MCP client sends its own BGBlur API key as a Bearer token (`Authorization: Bearer vba_...`) with every request. This keeps billing, usage, and credits isolated per user.
+- **Health Check**: Point your platform's health check to `GET /health`. Returns `200 OK` with service metadata.
+- **Graceful Shutdown**: The HTTP server handles `SIGTERM` and `SIGINT` by closing connections cleanly within 10 seconds.
+- **Logging**: Request logs are output to stdout with `[INFO]` prefix. Set `LOG_LEVEL=warn` to reduce verbosity.
+- **CORS**: Cross-origin requests are supported with permissive defaults. Restrict `Access-Control-Allow-Origin` as needed.
+- **Host Validation**: Set `ALLOWED_HOSTS` (comma-separated) for DNS rebinding protection when binding to `0.0.0.0`.
+
 ## Development Notes
 
 The MCP server should be a thin client over the BGBlur public API. Any business

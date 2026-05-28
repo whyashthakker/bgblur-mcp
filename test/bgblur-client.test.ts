@@ -14,6 +14,8 @@ describe("BgblurClient", () => {
       apiKey: "vba_secret",
       apiBaseUrl: "https://bgblur.com/api/v1",
       timeoutMs: 1000,
+      nodeEnv: "test",
+      logLevel: "silent",
     });
 
     await client.post("/images/blur-background", {

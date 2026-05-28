@@ -3,6 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { Server } from "node:http";
 
 import { BgblurClient } from "./bgblur-client.js";
 import { loadBaseConfig } from "./config.js";
@@ -10,6 +11,17 @@ import { registerTools } from "./tools/register.js";
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
+const NODE_ENV = process.env.NODE_ENV || "development";
+
+const startTime = Date.now();
+
+function logInfo(...args: unknown[]) {
+  console.log("[INFO]", ...args);
+}
+
+function logError(...args: unknown[]) {
+  console.error("[ERROR]", ...args);
+}
 
 function bearerToken(authorization: unknown) {
   if (typeof authorization !== "string") return null;
@@ -43,8 +55,33 @@ const app = createMcpExpressApp({
   allowedHosts: process.env.ALLOWED_HOSTS?.split(",").map((host) => host.trim()).filter(Boolean),
 });
 
+app.use((_req: any, res: any, next: any) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (_req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
+app.use((req: any, res: any, next: any) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logInfo(req.method, req.path, res.statusCode, `${Date.now() - start}ms`);
+  });
+  next();
+});
+
 app.get("/health", (_req: any, res: any) => {
-  res.json({ ok: true, service: "bgblur-mcp" });
+  res.json({
+    ok: true,
+    service: "bgblur-mcp",
+    version: "0.1.0",
+    uptime: Date.now() - startTime,
+    environment: NODE_ENV,
+  });
 });
 
 app.post("/mcp", async (req: any, res: any) => {
@@ -80,7 +117,7 @@ app.post("/mcp", async (req: any, res: any) => {
       req.body,
     );
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    logError(error instanceof Error ? error.message : String(error));
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: "2.0",
@@ -121,11 +158,26 @@ app.delete("/mcp", (_req: any, res: any) => {
   });
 });
 
-app.listen(PORT, HOST, (error?: Error) => {
+const httpServer: Server = app.listen(PORT, HOST, (error?: Error) => {
   if (error) {
-    console.error(error.message);
+    logError(error.message);
     process.exit(1);
   }
 
-  console.log(`BGBlur MCP HTTP server listening on ${HOST}:${PORT}`);
+  logInfo(`BGBlur MCP HTTP server listening on ${HOST}:${PORT} (${NODE_ENV})`);
 });
+
+function shutdown(signal: string) {
+  logInfo(`Received ${signal}, shutting down gracefully...`);
+  httpServer.close(() => {
+    logInfo("HTTP server closed.");
+    process.exit(0);
+  });
+  setTimeout(() => {
+    logError("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10000).unref();
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
