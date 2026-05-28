@@ -4,6 +4,8 @@ import type { ServerNotification, ServerRequest } from "@modelcontextprotocol/sd
 
 import type { BgblurClient } from "../bgblur-client.js";
 import {
+  blurAnythingSchema,
+  faceAnonymizationSchema,
   blurBackgroundSchema,
   blurFacesSchema,
   blurLicensePlatesSchema,
@@ -164,6 +166,45 @@ export function registerTools(
     "Detect unsafe content in an image or video.",
     detectNsfwSchema,
     async (input, extra) => callTool(() => getClient(extra).post("/detect/nsfw", input)),
+  );
+
+  server.tool(
+    "blur_anything",
+    "Blur specific objects in an image or video based on a text prompt.",
+    blurAnythingSchema,
+    async (input, extra) =>
+      callTool(() =>
+        getClient(extra).post(
+          input.media_type === "image" ? "/images/blur-anything" : "/videos/blur-anything",
+          input.media_type === "image"
+            ? {
+                image_url: input.media_url,
+                prompt: input.prompt,
+                blur_strength: input.blur_strength,
+                pixelated: input.pixelated,
+                pixelation_strength: input.pixelation_strength,
+              }
+            : {
+                video_url: input.media_url,
+                prompt: input.prompt,
+                blur_strength: input.blur_strength,
+                pixelated: input.pixelated,
+                pixelation_strength: input.pixelation_strength,
+              },
+        ),
+      ),
+  );
+
+  server.tool(
+    "face_anonymization",
+    "Deepfake-grade face anonymization for videos.",
+    faceAnonymizationSchema,
+    async (input, extra) =>
+      callTool(() =>
+        getClient(extra).post("/videos/face-anonymization", {
+          video_url: input.video_url,
+        }),
+      ),
   );
 
   server.tool(

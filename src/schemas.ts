@@ -69,3 +69,16 @@ export const uploadVideoSchema = {
 };
 
 export const emptySchema = {};
+
+export const blurAnythingSchema = {
+  media_url: z.string().url(),
+  media_type: mediaTypeSchema,
+  prompt: z.string().min(1).max(520),
+  blur_strength: blurStrengthSchema,
+  pixelated: z.boolean().default(false),
+  pixelation_strength: z.number().optional(),
+};
+
+export const faceAnonymizationSchema = {
+  video_url: z.string().url(),
+};
