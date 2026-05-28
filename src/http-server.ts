@@ -222,7 +222,7 @@ const authMiddleware = requireBearerAuth({
 
 // ─── MCP endpoint ─────────────────────────────────────────────────────────────
 
-app.post("/mcp", authMiddleware, async (req: any, res: any) => {
+async function mcpHandler(req: any, res: any) {
   const server = createServer();
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
@@ -230,8 +230,6 @@ app.post("/mcp", authMiddleware, async (req: any, res: any) => {
 
   try {
     await server.connect(transport);
-    // `req.auth` is populated by requireBearerAuth; the token flows through
-    // to registerTools → BgblurClient via extra.authInfo.
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
     logError(
@@ -241,10 +239,7 @@ app.post("/mcp", authMiddleware, async (req: any, res: any) => {
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: "2.0",
-        error: {
-          code: -32603,
-          message: "Internal server error",
-        },
+        error: { code: -32603, message: "Internal server error" },
         id: null,
       });
     }
@@ -254,7 +249,10 @@ app.post("/mcp", authMiddleware, async (req: any, res: any) => {
       void server.close();
     });
   }
-});
+}
+
+app.post("/mcp", authMiddleware, mcpHandler);
+app.post("/", authMiddleware, mcpHandler);
 
 app.get("/mcp", (_req: any, res: any) => {
   res.status(405).json({
