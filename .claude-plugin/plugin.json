@@ -1,0 +1,22 @@
+{
+  "name": "bgblur-plugin",
+  "description": "Background blur, face anonymization, and video processing tools.",
+  "version": "1.0.0",
+  "author": {
+    "name": "BGBlur Team"
+  },
+  "mcpServers": {
+    "bgblur": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/build/index.js"
+      ],
+      "env": {
+        "BGBLUR_OAUTH_ISSUER": "https://www.bgblur.com",
+        "BGBLUR_OAUTH_AUTHORIZE": "https://www.bgblur.com/oauth/authorize",
+        "BGBLUR_OAUTH_TOKEN": "https://www.bgblur.com/oauth/token",
+        "BGBLUR_OAUTH_REGISTER": "https://www.bgblur.com/oauth/register"
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "bgblur-marketplace",
+  "owner": {
+    "name": "BGBlur Team"
+  },
+  "plugins": [
+    {
+      "name": "bgblur-plugin",
+      "source": {
+        "source": "github",
+        "repo": "whyashthakker/bgblur-mcp"
+      },
+      "description": "Advanced image and video anonymization AI tools."
+    }
+  ]
+}
