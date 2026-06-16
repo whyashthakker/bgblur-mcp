@@ -38,7 +38,9 @@ export function registerTools(
   if (options.enableLocalUploads) {
     server.tool(
       "upload_image",
-      "Upload a local image file to BGBlur and return a CDN image URL.",
+      "This tool will upload a local image file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
+        "It takes one argument: " +
+        "- file_path (str, required): Absolute local path to the image file.",
       uploadImageSchema,
       async (input, extra) =>
         callTool(async () => {
@@ -52,7 +54,9 @@ export function registerTools(
 
     server.tool(
       "upload_video",
-      "Upload a local video file to BGBlur and return a CDN video URL.",
+      "This tool will upload a local video file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
+        "It takes one argument: " +
+        "- file_path (str, required): Absolute local path to the video file.",
       uploadVideoSchema,
       async (input, extra) =>
         callTool(async () => {
@@ -67,21 +71,25 @@ export function registerTools(
 
   server.tool(
     "check_credits",
-    "Check remaining BGBlur credits and API key account usage information.",
+    "This tool will check the remaining BGBlur credits and account usage information for the calling API key. It takes no arguments.",
     emptySchema,
     async (_input, extra) => callTool(() => getClient(extra).get("/me/credits")),
   );
 
   server.tool(
     "list_features",
-    "List available BGBlur MCP/API features, input schemas, endpoints, and credit costs.",
+    "This tool will list every available BGBlur tool, its endpoint, input schema, and credit cost. It takes no arguments.",
     emptySchema,
     async (_input, extra) => callTool(() => getClient(extra).get("/features")),
   );
 
   server.tool(
     "blur_background",
-    "Blur an image background with configurable intensity.",
+    "This tool will blur the background of an image while keeping the foreground subject sharp. " +
+      "It takes the following arguments: " +
+      "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
+      "- blur_strength (number, optional): Blur intensity from 0 to 1. Defaults to 0.7. " +
+      "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     blurBackgroundSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -99,7 +107,12 @@ export function registerTools(
 
   server.tool(
     "remove_background",
-    "Remove an image background and optionally return a transparent output.",
+    "This tool will remove the background of an image, returning either a transparent result or a flat color fill. " +
+      "It takes the following arguments: " +
+      "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
+      "- output_transparent (bool, optional): If true, the removed background is transparent. Defaults to true. " +
+      "- background_color (str, optional): Hex color to fill the background with when output_transparent is false. " +
+      "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     removeBackgroundSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -118,7 +131,12 @@ export function registerTools(
 
   server.tool(
     "portrait_enhance",
-    "Enhance a portrait and optionally apply depth effects.",
+    "This tool will enhance a portrait photo, optionally sharpening the face and applying a depth-of-field background effect. " +
+      "It takes the following arguments: " +
+      "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
+      "- enhance_face (bool, optional): Apply face enhancement. Defaults to true. " +
+      "- depth_effect (bool, optional): Apply a depth-of-field background effect. Defaults to true. " +
+      "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     portraitEnhanceSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -137,7 +155,12 @@ export function registerTools(
 
   server.tool(
     "blur_faces",
-    "Blur faces in an image or video.",
+    "This tool will detect and blur every face in an image or video. " +
+      "It takes the following arguments: " +
+      "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
+      "- media_type (str, required): 'image' or 'video'. " +
+      "- blur_strength (number, optional): Blur intensity from 0 to 1. Defaults to 0.8. " +
+      "- pixelated (bool, optional): Render as pixelation instead of a smooth blur. Defaults to false.",
     blurFacesSchema,
     async (input, extra) => callTool(async () => {
       const resolved_url = await resolveMediaInput(getClient(extra), {
@@ -164,7 +187,12 @@ export function registerTools(
 
   server.tool(
     "blur_license_plates",
-    "Blur license plates in an image or video.",
+    "This tool will detect and blur every license plate in an image or video. " +
+      "It takes the following arguments: " +
+      "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
+      "- media_type (str, required): 'image' or 'video'. " +
+      "- blur_strength (number, optional): Blur intensity from 0 to 1. Defaults to 0.8. " +
+      "- pixelated (bool, optional): Render as pixelation instead of a smooth blur. Defaults to false.",
     blurLicensePlatesSchema,
     async (input, extra) => callTool(async () => {
       const resolved_url = await resolveMediaInput(getClient(extra), {
@@ -191,7 +219,11 @@ export function registerTools(
 
   server.tool(
     "blur_video_background",
-    "Blur a video background.",
+    "This tool will blur the background of a video while keeping the foreground subject sharp. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
+      "It takes the following arguments: " +
+      "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL. " +
+      "- blur_strength (number, optional): Blur intensity from 0 to 1. Defaults to 0.7. " +
+      "- duration_seconds (number, optional): Limit processing to the first N seconds (max 3600).",
     blurVideoBackgroundSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -209,7 +241,11 @@ export function registerTools(
 
   server.tool(
     "remove_object_from_video",
-    "Remove a named object from a video.",
+    "This tool will remove a named object from a video, inpainting the area it occupied. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
+      "It takes the following arguments: " +
+      "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL. " +
+      "- object_text (str, required): Short description of the object to remove (e.g. 'person', 'car'). " +
+      "- duration_seconds (number, optional): Limit processing to the first N seconds (max 60).",
     removeObjectFromVideoSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -227,7 +263,10 @@ export function registerTools(
 
   server.tool(
     "detect_nsfw",
-    "Detect unsafe content in an image or video.",
+    "This tool will scan an image or video and report whether it contains unsafe (NSFW) content. " +
+      "It takes the following arguments: " +
+      "- media_file or media_url (one required): The image/video to scan, either an uploaded file or a public URL. " +
+      "- media_type (str, required): 'image' or 'video'.",
     detectNsfwSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -244,7 +283,14 @@ export function registerTools(
 
   server.tool(
     "blur_anything",
-    "Blur specific objects in an image or video based on a text prompt.",
+    "This tool will blur whatever you describe in a text prompt, anywhere it appears in an image or video (e.g. 'the red car' or 'all phone screens'). " +
+      "It takes the following arguments: " +
+      "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
+      "- media_type (str, required): 'image' or 'video'. " +
+      "- prompt (str, required): Natural-language description of what to blur. " +
+      "- blur_strength (number, optional): Blur intensity from 0 to 1. Defaults to 0.7. " +
+      "- pixelated (bool, optional): Render as pixelation instead of a smooth blur. Defaults to false. " +
+      "- pixelation_strength (number, optional): Pixelation block size when pixelated is true.",
     blurAnythingSchema,
     async (input, extra) => callTool(async () => {
       const resolved_url = await resolveMediaInput(getClient(extra), {
@@ -275,7 +321,9 @@ export function registerTools(
 
   server.tool(
     "face_anonymization",
-    "Deepfake-grade face anonymization for videos.",
+    "This tool will anonymize every face in a video using deepfake-grade face replacement, preserving expressions and motion while making the person unidentifiable. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
+      "It takes the following argument: " +
+      "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL.",
     faceAnonymizationSchema,
     async (input, extra) => callTool(async () => {
       const media_url = await resolveMediaInput(getClient(extra), {
@@ -291,7 +339,9 @@ export function registerTools(
 
   server.tool(
     "get_job_status",
-    "Check the status and result of an async BGBlur job.",
+    "This tool will fetch the status and result of an asynchronous BGBlur job (returned by tools like blur_video_background, remove_object_from_video, or face_anonymization). " +
+      "It takes the following argument: " +
+      "- job_id (str, required): The job_id returned by the asynchronous tool call.",
     getJobStatusSchema,
     async (input, extra) =>
       callTool(() => getClient(extra).get(`/jobs/${encodeURIComponent(input.job_id)}`)),
