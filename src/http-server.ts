@@ -59,13 +59,13 @@ const MCP_SERVER_URL =
  * These values are read from env so they can be overridden for staging.
  */
 const BGBLUR_OAUTH_ISSUER =
-  process.env.BGBLUR_OAUTH_ISSUER || "https://bgblur.com";
+  process.env.BGBLUR_OAUTH_ISSUER || "https://www.bgblur.com";
 const BGBLUR_OAUTH_AUTHORIZE =
-  process.env.BGBLUR_OAUTH_AUTHORIZE || "https://bgblur.com/oauth/authorize";
+  process.env.BGBLUR_OAUTH_AUTHORIZE || "https://www.bgblur.com/oauth/authorize";
 const BGBLUR_OAUTH_TOKEN =
-  process.env.BGBLUR_OAUTH_TOKEN || "https://bgblur.com/oauth/token";
+  process.env.BGBLUR_OAUTH_TOKEN || "https://www.bgblur.com/oauth/token";
 const BGBLUR_OAUTH_REGISTER =
-  process.env.BGBLUR_OAUTH_REGISTER || "https://bgblur.com/oauth/register";
+  process.env.BGBLUR_OAUTH_REGISTER || "https://www.bgblur.com/oauth/register";
 
 const startTime = Date.now();
 

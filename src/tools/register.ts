@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import type { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  ServerNotification,
+  ServerRequest,
+  ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 
 import type { BgblurClient } from "../bgblur-client.js";
 import {
@@ -26,6 +30,42 @@ import { errorText, jsonText } from "../utils/response.js";
 type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
 type ClientProvider = (extra: ToolExtra) => BgblurClient;
 
+type ToolMeta = { title: string; annotations: ToolAnnotations };
+
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} satisfies ToolAnnotations;
+
+// Processing tools create a new output from the input media; they never modify
+// or delete the source file. They spend credits, so they are not read-only.
+const PROCESS = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+} satisfies ToolAnnotations;
+
+const TOOL_META: Record<string, ToolMeta> = {
+  upload_image: { title: "Upload Image", annotations: PROCESS },
+  upload_video: { title: "Upload Video", annotations: PROCESS },
+  check_credits: { title: "Check Credits", annotations: READ_ONLY },
+  list_features: { title: "List Features", annotations: READ_ONLY },
+  blur_background: { title: "Blur Image Background", annotations: PROCESS },
+  remove_background: { title: "Remove Image Background", annotations: PROCESS },
+  portrait_enhance: { title: "Enhance Portrait", annotations: PROCESS },
+  blur_faces: { title: "Blur Faces", annotations: PROCESS },
+  blur_license_plates: { title: "Blur License Plates", annotations: PROCESS },
+  blur_video_background: { title: "Blur Video Background", annotations: PROCESS },
+  remove_object_from_video: { title: "Remove Object From Video", annotations: PROCESS },
+  detect_nsfw: { title: "Detect NSFW Content", annotations: READ_ONLY },
+  blur_anything: { title: "Blur Anything", annotations: PROCESS },
+  face_anonymization: { title: "Anonymize Faces In Video", annotations: PROCESS },
+  get_job_status: { title: "Get Job Status", annotations: READ_ONLY },
+};
+
 type RegisterToolOptions = {
   enableLocalUploads?: boolean;
 };
@@ -35,9 +75,23 @@ export function registerTools(
   getClient: ClientProvider,
   options: RegisterToolOptions = {},
 ) {
+  const defineTool = (
+    name: string,
+    meta: ToolMeta,
+    description: string,
+    inputSchema: any,
+    cb: (input: any, extra: ToolExtra) => Promise<any>,
+  ) =>
+    server.registerTool(
+      name,
+      { title: meta.title, description, inputSchema, annotations: meta.annotations },
+      cb as any,
+    );
+
   if (options.enableLocalUploads) {
-    server.tool(
+    defineTool(
       "upload_image",
+      TOOL_META["upload_image"],
       "This tool will upload a local image file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
         "It takes one argument: " +
         "- file_path (str, required): Absolute local path to the image file.",
@@ -52,8 +106,9 @@ export function registerTools(
         }),
     );
 
-    server.tool(
+    defineTool(
       "upload_video",
+      TOOL_META["upload_video"],
       "This tool will upload a local video file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
         "It takes one argument: " +
         "- file_path (str, required): Absolute local path to the video file.",
@@ -69,22 +124,25 @@ export function registerTools(
     );
   }
 
-  server.tool(
+  defineTool(
     "check_credits",
+    TOOL_META["check_credits"],
     "This tool will check the remaining BGBlur credits and account usage information for the calling API key. It takes no arguments.",
     emptySchema,
     async (_input, extra) => callTool(() => getClient(extra).get("/me/credits")),
   );
 
-  server.tool(
+  defineTool(
     "list_features",
+    TOOL_META["list_features"],
     "This tool will list every available BGBlur tool, its endpoint, input schema, and credit cost. It takes no arguments.",
     emptySchema,
     async (_input, extra) => callTool(() => getClient(extra).get("/features")),
   );
 
-  server.tool(
+  defineTool(
     "blur_background",
+    TOOL_META["blur_background"],
     "This tool will blur the background of an image while keeping the foreground subject sharp. " +
       "It takes the following arguments: " +
       "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
@@ -105,8 +163,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "remove_background",
+    TOOL_META["remove_background"],
     "This tool will remove the background of an image, returning either a transparent result or a flat color fill. " +
       "It takes the following arguments: " +
       "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
@@ -129,8 +188,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "portrait_enhance",
+    TOOL_META["portrait_enhance"],
     "This tool will enhance a portrait photo, optionally sharpening the face and applying a depth-of-field background effect. " +
       "It takes the following arguments: " +
       "- media_file or image_url (one required): The image to process, either an uploaded file or a public URL. " +
@@ -153,8 +213,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "blur_faces",
+    TOOL_META["blur_faces"],
     "This tool will detect and blur every face in an image or video. " +
       "It takes the following arguments: " +
       "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
@@ -185,8 +246,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "blur_license_plates",
+    TOOL_META["blur_license_plates"],
     "This tool will detect and blur every license plate in an image or video. " +
       "It takes the following arguments: " +
       "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
@@ -217,8 +279,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "blur_video_background",
+    TOOL_META["blur_video_background"],
     "This tool will blur the background of a video while keeping the foreground subject sharp. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
       "It takes the following arguments: " +
       "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL. " +
@@ -239,8 +302,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "remove_object_from_video",
+    TOOL_META["remove_object_from_video"],
     "This tool will remove a named object from a video, inpainting the area it occupied. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
       "It takes the following arguments: " +
       "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL. " +
@@ -261,8 +325,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "detect_nsfw",
+    TOOL_META["detect_nsfw"],
     "This tool will scan an image or video and report whether it contains unsafe (NSFW) content. " +
       "It takes the following arguments: " +
       "- media_file or media_url (one required): The image/video to scan, either an uploaded file or a public URL. " +
@@ -281,8 +346,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "blur_anything",
+    TOOL_META["blur_anything"],
     "This tool will blur whatever you describe in a text prompt, anywhere it appears in an image or video (e.g. 'the red car' or 'all phone screens'). " +
       "It takes the following arguments: " +
       "- media_file or media_url (one required): The image/video to process, either an uploaded file or a public URL. " +
@@ -319,9 +385,10 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "face_anonymization",
-    "This tool will anonymize every face in a video using deepfake-grade face replacement, preserving expressions and motion while making the person unidentifiable. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
+    TOOL_META["face_anonymization"],
+    "This tool will anonymize every face in a video so people in it cannot be identified, while keeping the rest of the video unchanged. This is an asynchronous operation; use get_job_status with the returned job_id to retrieve the result. " +
       "It takes the following argument: " +
       "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL.",
     faceAnonymizationSchema,
@@ -337,8 +404,9 @@ export function registerTools(
     }),
   );
 
-  server.tool(
+  defineTool(
     "get_job_status",
+    TOOL_META["get_job_status"],
     "This tool will fetch the status and result of an asynchronous BGBlur job (returned by tools like blur_video_background, remove_object_from_video, or face_anonymization). " +
       "It takes the following argument: " +
       "- job_id (str, required): The job_id returned by the asynchronous tool call.",
