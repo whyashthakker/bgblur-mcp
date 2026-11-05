@@ -109,7 +109,8 @@ function createServer() {
 
 // ─── OAuth metadata ───────────────────────────────────────────────────────────
 
-const mcpServerUrl = new URL(MCP_SERVER_URL);
+// The protected resource is the actual MCP endpoint, not the host root.
+const mcpServerUrl = new URL("/mcp", MCP_SERVER_URL);
 
 /**
  * OAuth 2.0 Authorization Server Metadata (RFC 8414) for bgblur.com.
@@ -184,6 +185,17 @@ app.use((req: any, res: any, next: any) => {
 //   GET /.well-known/oauth-authorization-server
 //       → standard RFC 8414 AS metadata (authorization_endpoint, token_endpoint, …)
 //
+// Keep the host-level discovery URL for clients that probe the origin first.
+// Both discovery URLs identify /mcp as the same protected resource.
+app.get("/.well-known/oauth-protected-resource", (_req: any, res: any) => {
+  res.json({
+    resource: mcpServerUrl.href,
+    authorization_servers: [BGBLUR_OAUTH_ISSUER],
+    scopes_supported: ["mcp:tools"],
+    resource_name: "BGBlur MCP Server",
+  });
+});
+
 app.use(
   mcpAuthMetadataRouter({
     oauthMetadata,
