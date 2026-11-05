@@ -24,14 +24,14 @@ export const mediaTypeSchema = z
   .describe("Whether the input media is an 'image' or a 'video'.");
 
 export const blurBackgroundSchema = {
-  media_file: z.string().describe("Uploaded image file returned by upload_image. Use this or image_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image or image data URI. Use this or image_url.").optional(),
   image_url: z.string().url().describe("Public URL of the image to process. Use this or media_file.").optional(),
   blur_strength: blurStrengthSchema,
   output_format: outputFormatSchema,
 };
 
 export const removeBackgroundSchema = {
-  media_file: z.string().describe("Uploaded image file returned by upload_image. Use this or image_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image or image data URI. Use this or image_url.").optional(),
   image_url: z.string().url().describe("Public URL of the image to process. Use this or media_file.").optional(),
   output_transparent: z
     .boolean()
@@ -45,7 +45,7 @@ export const removeBackgroundSchema = {
 };
 
 export const portraitEnhanceSchema = {
-  media_file: z.string().describe("Uploaded image file returned by upload_image. Use this or image_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image or image data URI. Use this or image_url.").optional(),
   image_url: z.string().url().describe("Public URL of the image to process. Use this or media_file.").optional(),
   enhance_face: z.boolean().default(true).describe("If true, apply face enhancement. Defaults to true."),
   depth_effect: z.boolean().default(true).describe("If true, apply a depth-of-field background effect. Defaults to true."),
@@ -53,7 +53,7 @@ export const portraitEnhanceSchema = {
 };
 
 export const blurFacesSchema = {
-  media_file: z.string().describe("Uploaded image/video file returned by upload_image or upload_video. Use this or media_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image/video or data URI. Use this or media_url.").optional(),
   media_url: z.string().url().describe("Public URL of the image/video to process. Use this or media_file.").optional(),
   media_type: mediaTypeSchema,
   blur_strength: strongBlurStrengthSchema,
@@ -61,7 +61,7 @@ export const blurFacesSchema = {
 };
 
 export const blurLicensePlatesSchema = {
-  media_file: z.string().describe("Uploaded image/video file returned by upload_image or upload_video. Use this or media_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image/video or data URI. Use this or media_url.").optional(),
   media_url: z.string().url().describe("Public URL of the image/video to process. Use this or media_file.").optional(),
   media_type: mediaTypeSchema,
   blur_strength: strongBlurStrengthSchema,
@@ -69,7 +69,7 @@ export const blurLicensePlatesSchema = {
 };
 
 export const blurVideoBackgroundSchema = {
-  media_file: z.string().describe("Uploaded video file returned by upload_video. Use this or video_url.").optional(),
+  media_file: z.string().describe("Base64-encoded video or video data URI. Use this or video_url.").optional(),
   video_url: z.string().url().describe("Public URL of the video to process. Use this or media_file.").optional(),
   blur_strength: blurStrengthSchema,
   duration_seconds: z
@@ -81,7 +81,7 @@ export const blurVideoBackgroundSchema = {
 };
 
 export const removeObjectFromVideoSchema = {
-  media_file: z.string().describe("Uploaded video file returned by upload_video. Use this or video_url.").optional(),
+  media_file: z.string().describe("Base64-encoded video or video data URI. Use this or video_url.").optional(),
   video_url: z.string().url().describe("Public URL of the video to process. Use this or media_file.").optional(),
   object_text: z.string().min(1).max(40).describe("Short text description of the object to remove (e.g. 'person', 'car', 'logo'). 1-40 characters."),
   duration_seconds: z
@@ -93,7 +93,7 @@ export const removeObjectFromVideoSchema = {
 };
 
 export const detectNsfwSchema = {
-  media_file: z.string().describe("Uploaded image/video file returned by upload_image or upload_video. Use this or media_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image/video or data URI. Use this or media_url.").optional(),
   media_url: z.string().url().describe("Public URL of the image/video to scan. Use this or media_file.").optional(),
   media_type: mediaTypeSchema,
 };
@@ -113,7 +113,7 @@ export const uploadVideoSchema = {
 export const emptySchema = {};
 
 export const blurAnythingSchema = {
-  media_file: z.string().describe("Uploaded image/video file returned by upload_image or upload_video. Use this or media_url.").optional(),
+  media_file: z.string().describe("Base64-encoded image/video or data URI. Use this or media_url.").optional(),
   media_url: z.string().url().describe("Public URL of the image/video to process. Use this or media_file.").optional(),
   media_type: mediaTypeSchema,
   prompt: z.string().min(1).max(520).describe("Natural-language description of what to blur (e.g. 'the red car' or 'all phone screens'). 1-520 characters."),
@@ -126,6 +126,6 @@ export const blurAnythingSchema = {
 };
 
 export const faceAnonymizationSchema = {
-  media_file: z.string().describe("Uploaded video file returned by upload_video. Use this or video_url.").optional(),
+  media_file: z.string().describe("Base64-encoded video or video data URI. Use this or video_url.").optional(),
   video_url: z.string().url().describe("Public URL of the video to process. Use this or media_file.").optional(),
 };

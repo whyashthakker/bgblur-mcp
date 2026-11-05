@@ -12,5 +12,8 @@ export function jsonText(value: unknown) {
 }
 
 export function errorText(error: unknown) {
-  return jsonText(normalizeError(error));
+  return {
+    ...jsonText(normalizeError(error)),
+    isError: true,
+  };
 }

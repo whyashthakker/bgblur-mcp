@@ -15,7 +15,8 @@ export async function resolveMediaInput(
     media_url?: string;
     media_file?: string;
     media_type: "image" | "video";
-  }
+  },
+  options: { allowLocalFilePath?: boolean } = {},
 ): Promise<string> {
   // If a URL is provided, prefer it.
   if (input.media_url) {
@@ -46,12 +47,14 @@ export async function resolveMediaInput(
       fileType = input.media_type === "image" ? "image/jpeg" : "video/mp4";
     } 
     // Check if it's a local file path (ChatGPT or Claude Desktop local rewrite)
-    else if (fs.existsSync(input.media_file)) {
+    else if (options.allowLocalFilePath && fs.existsSync(input.media_file)) {
       buffer = fs.readFileSync(input.media_file);
       fileName = path.basename(input.media_file);
       fileType = input.media_type === "image" ? "image/jpeg" : "video/mp4"; // Fallback
     } else {
-      throw new Error("media_file must be a base64 string, data URI, or valid local file path");
+      throw new Error(options.allowLocalFilePath
+        ? "media_file must be a base64 string, data URI, or valid local file path"
+        : "media_file must be a base64 string or data URI; server file paths are not supported over HTTP");
     }
 
     // Upload to our backend using the presigned URL flow in bgblur-client

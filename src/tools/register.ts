@@ -39,11 +39,11 @@ const READ_ONLY = {
   openWorldHint: true,
 } satisfies ToolAnnotations;
 
-// Processing tools create a new output from the input media; they never modify
-// or delete the source file. They spend credits, so they are not read-only.
+// Processing tools create outputs and spend credits. Claude must ask before
+// invoking them, even though the source media is left unchanged.
 const PROCESS = {
   readOnlyHint: false,
-  destructiveHint: false,
+  destructiveHint: true,
   idempotentHint: false,
   openWorldHint: true,
 } satisfies ToolAnnotations;
@@ -75,6 +75,11 @@ export function registerTools(
   getClient: ClientProvider,
   options: RegisterToolOptions = {},
 ) {
+  const resolveInput = (
+    client: BgblurClient,
+    input: Parameters<typeof resolveMediaInput>[1],
+  ) => resolveMediaInput(client, input, { allowLocalFilePath: options.enableLocalUploads === true });
+
   const defineTool = (
     name: string,
     meta: ToolMeta,
@@ -92,7 +97,7 @@ export function registerTools(
     defineTool(
       "upload_image",
       TOOL_META["upload_image"],
-      "This tool will upload a local image file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
+      "This tool will upload a local image file to BGBlur and return a CDN URL that can be passed as image_url or media_url to another BGBlur tool. " +
         "It takes one argument: " +
         "- file_path (str, required): Absolute local path to the image file.",
       uploadImageSchema,
@@ -109,7 +114,7 @@ export function registerTools(
     defineTool(
       "upload_video",
       TOOL_META["upload_video"],
-      "This tool will upload a local video file to BGBlur and return a CDN URL that can be passed as media_file to any other BGBlur tool. " +
+      "This tool will upload a local video file to BGBlur and return a CDN URL that can be passed as video_url or media_url to another BGBlur tool. " +
         "It takes one argument: " +
         "- file_path (str, required): Absolute local path to the video file.",
       uploadVideoSchema,
@@ -150,7 +155,7 @@ export function registerTools(
       "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     blurBackgroundSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.image_url,
         media_file: input.media_file,
         media_type: "image",
@@ -174,7 +179,7 @@ export function registerTools(
       "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     removeBackgroundSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.image_url,
         media_file: input.media_file,
         media_type: "image",
@@ -199,7 +204,7 @@ export function registerTools(
       "- output_format (str, optional): 'png', 'jpg', or 'webp'. Defaults to 'png'.",
     portraitEnhanceSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.image_url,
         media_file: input.media_file,
         media_type: "image",
@@ -224,7 +229,7 @@ export function registerTools(
       "- pixelated (bool, optional): Render as pixelation instead of a smooth blur. Defaults to false.",
     blurFacesSchema,
     async (input, extra) => callTool(async () => {
-      const resolved_url = await resolveMediaInput(getClient(extra), {
+      const resolved_url = await resolveInput(getClient(extra), {
         media_url: input.media_url,
         media_file: input.media_file,
         media_type: input.media_type,
@@ -257,7 +262,7 @@ export function registerTools(
       "- pixelated (bool, optional): Render as pixelation instead of a smooth blur. Defaults to false.",
     blurLicensePlatesSchema,
     async (input, extra) => callTool(async () => {
-      const resolved_url = await resolveMediaInput(getClient(extra), {
+      const resolved_url = await resolveInput(getClient(extra), {
         media_url: input.media_url,
         media_file: input.media_file,
         media_type: input.media_type,
@@ -289,7 +294,7 @@ export function registerTools(
       "- duration_seconds (number, optional): Limit processing to the first N seconds (max 3600).",
     blurVideoBackgroundSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.video_url,
         media_file: input.media_file,
         media_type: "video",
@@ -312,7 +317,7 @@ export function registerTools(
       "- duration_seconds (number, optional): Limit processing to the first N seconds (max 60).",
     removeObjectFromVideoSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.video_url,
         media_file: input.media_file,
         media_type: "video",
@@ -334,7 +339,7 @@ export function registerTools(
       "- media_type (str, required): 'image' or 'video'.",
     detectNsfwSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.media_url,
         media_file: input.media_file,
         media_type: input.media_type,
@@ -359,7 +364,7 @@ export function registerTools(
       "- pixelation_strength (number, optional): Pixelation block size when pixelated is true.",
     blurAnythingSchema,
     async (input, extra) => callTool(async () => {
-      const resolved_url = await resolveMediaInput(getClient(extra), {
+      const resolved_url = await resolveInput(getClient(extra), {
         media_url: input.media_url,
         media_file: input.media_file,
         media_type: input.media_type,
@@ -393,7 +398,7 @@ export function registerTools(
       "- media_file or video_url (one required): The video to process, either an uploaded file or a public URL.",
     faceAnonymizationSchema,
     async (input, extra) => callTool(async () => {
-      const media_url = await resolveMediaInput(getClient(extra), {
+      const media_url = await resolveInput(getClient(extra), {
         media_url: input.video_url,
         media_file: input.media_file,
         media_type: "video",
